@@ -22,8 +22,9 @@ const COLECCIONES: Record<string, any[]> = {
 const PREFIJOS = Object.keys(COLECCIONES).sort((a, b) => b.length - a.length);
 
 function resolverColeccion(pathname: string): { prefijo: string; coleccion: any[]; resto: string[] } | null {
-  const segmentos = pathname.split("/").filter(Boolean);
-  const segmentosSeguro = segmentos ?? [];
+  const segmentosSeguro = pathname
+  .split("/")
+  .filter(Boolean) as string[];
   for (const prefijo of PREFIJOS) {
     const partesPrefijo = prefijo.split("/");
     const coincide = partesPrefijo.every((parte, i) => segmentosSeguro[i] === parte);
