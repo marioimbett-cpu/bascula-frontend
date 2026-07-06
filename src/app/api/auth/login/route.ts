@@ -5,6 +5,13 @@ export async function POST() {
   // Modo demo: acepta cualquier correo/contraseña y siempre autentica como el primer usuario de ejemplo.
   const user = usuarios[0];
 
+  if (!user) {
+    return NextResponse.json(
+      { message: "No hay usuarios de demo configurados" },
+      { status: 500 }
+    );
+  }
+
   const response = NextResponse.json({
     accessToken: "demo-access-token",
     refreshToken: "demo-refresh-token",
