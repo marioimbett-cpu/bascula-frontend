@@ -52,7 +52,7 @@ export default function PagosPage() {
         id: "soporte",
         header: "Soporte",
         cell: ({ row }) =>
-          row.original.soporteAdjunto ? (
+          row.original.soporteAdjuntoUrl ? (
             <span className="flex items-center gap-1 text-xs text-primary-600">
               <Paperclip className="h-3.5 w-3.5" aria-hidden="true" /> Adjunto
             </span>
