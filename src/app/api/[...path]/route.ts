@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+mport { NextResponse, type NextRequest } from "next/server";
 import * as db from "@/mocks/data";
 
 // Mapea el prefijo de ruta (tal como lo llaman los servicios en src/services/modules.ts) a su colección en memoria.
@@ -21,34 +21,31 @@ const COLECCIONES: Record<string, any[]> = {
 
 const PREFIJOS = Object.keys(COLECCIONES).sort((a, b) => b.length - a.length);
 
-function resolverColeccion(
-  pathname: string
-): { prefijo: string; coleccion: any[]; resto: string[] } | null {
-  const segmentosSeguro: string[] = pathname
-    .split("/")
-    .filter(Boolean);
+function resolverColeccion(pathname: string): { prefijo: string; coleccion: any[]; resto: string[] } | null {
+  const segmentos: string[] = pathname.split("/").filter(Boolean);
 
   for (const prefijo of PREFIJOS) {
     const partesPrefijo = prefijo.split("/");
 
     const coincide = partesPrefijo.every(
-      (parte, i) => (segmentosSeguro[i] ?? "") === parte
+      (parte, i) => (segmentos[i] ?? "") === parte
     );
 
-    if (!coincide) {
-      continue;
-    }
-const coleccion = COLECCIONES[prefijo];
+    if (!coincide) continue;
 
-if (!coleccion) continue;
+    const coleccion = COLECCIONES[prefijo];
+    if (coleccion === undefined) continue;
 
-return {
-    prefijo,
-    coleccion,
-    resto: segmentosSeguro.slice(partesPrefijo.length),
-};
+    return {
+      prefijo,
+      coleccion,
+      resto: segmentos.slice(partesPrefijo.length),
+    };
+  }
+
   return null;
 }
+
 function parseFilters(searchParams: URLSearchParams) {
   const filtros: Record<string, string> = {};
 
@@ -62,6 +59,7 @@ function parseFilters(searchParams: URLSearchParams) {
 
   return filtros;
 }
+
 function paginar(items: any[], searchParams: URLSearchParams) {
   const page = Number(searchParams.get("page") ?? 1);
   const pageSize = Number(searchParams.get("pageSize") ?? 10);
@@ -191,4 +189,6 @@ export async function DELETE(request: NextRequest) {
 
   resuelto.coleccion.splice(index, 1);
   return NextResponse.json({ ok: true });
+}
+
 }
