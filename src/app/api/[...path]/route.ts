@@ -21,28 +21,52 @@ const COLECCIONES: Record<string, any[]> = {
 
 const PREFIJOS = Object.keys(COLECCIONES).sort((a, b) => b.length - a.length);
 
-function resolverColeccion(pathname: string): { prefijo: string; coleccion: any[]; resto: string[] } | null {
+function resolverColeccion(
+  pathname: string
+): { prefijo: string; coleccion: any[]; resto: string[] } | null {
   const segmentosSeguro: string[] = pathname
-  .split("/")
-  .filter(Boolean);
+    .split("/")
+    .filter(Boolean);
+
   for (const prefijo of PREFIJOS) {
     const partesPrefijo = prefijo.split("/");
-    const coincide = partesPrefijo.every((parte, i) => (segmentosSeguro[i] ?? "") === parte)
-      return { prefijo, coleccion: COLECCIONES[prefijo], resto: segmentosSeguro.slice(partesPrefijo.length),
+
+    const coincide = partesPrefijo.every(
+      (parte, i) => (segmentosSeguro[i] ?? "") === parte
+    );
+
+    if (!coincide) {
+      continue;
+    }
+
+    const coleccion = COLECCIONES[prefijo];
+
+    if (!coleccion) {
+      continue;
+    }
+
+    return {
+      prefijo,
+      coleccion,
+      resto: segmentosSeguro.slice(partesPrefijo.length),
     };
   }
+
   return null;
 }
-
 function parseFilters(searchParams: URLSearchParams) {
   const filtros: Record<string, string> = {};
+
   for (const [key, value] of searchParams.entries()) {
     const match = key.match(/^filters\[(.+)\]$/);
-    if (match && value) filtros[match[1]] = value;
+
+    if (match?.[1] && value) {
+      filtros[match[1]] = value;
+    }
   }
+
   return filtros;
 }
-
 function paginar(items: any[], searchParams: URLSearchParams) {
   const page = Number(searchParams.get("page") ?? 1);
   const pageSize = Number(searchParams.get("pageSize") ?? 10);
