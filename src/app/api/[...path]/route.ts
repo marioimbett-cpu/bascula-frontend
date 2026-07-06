@@ -27,9 +27,9 @@ function resolverColeccion(pathname: string): { prefijo: string; coleccion: any[
   .filter(Boolean);
   for (const prefijo of PREFIJOS) {
     const partesPrefijo = prefijo.split("/");
-    const coincide = partesPrefijo.every((parte, i) => (segmentosSeguro[i] ?? "") === parte);{
-      return { prefijo, coleccion: COLECCIONES[prefijo], resto: segmentosSeguro.slice(partesPrefijo.length);
-    }
+    const coincide = partesPrefijo.every((parte, i) => (segmentosSeguro[i] ?? "") === parte)
+      return { prefijo, coleccion: COLECCIONES[prefijo], resto: segmentosSeguro.slice(partesPrefijo.length),
+    };
   }
   return null;
 }
