@@ -23,11 +23,12 @@ const PREFIJOS = Object.keys(COLECCIONES).sort((a, b) => b.length - a.length);
 
 function resolverColeccion(pathname: string): { prefijo: string; coleccion: any[]; resto: string[] } | null {
   const segmentos = pathname.split("/").filter(Boolean);
+  const segmentosSeguro = segmentos ?? [];
   for (const prefijo of PREFIJOS) {
     const partesPrefijo = prefijo.split("/");
-    const coincide = partesPrefijo.every((parte, i) => segmentos[i] === parte);
+    const coincide = partesPrefijo.every((parte, i) => segmentosSeguro[i] === parte);
     if (coincide) {
-      return { prefijo, coleccion: COLECCIONES[prefijo], resto: segmentos.slice(partesPrefijo.length) };
+      return { prefijo, coleccion: COLECCIONES[prefijo], resto: segmentosSeguro.slice(partesPrefijo.length);
     }
   }
   return null;
