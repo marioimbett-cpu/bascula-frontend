@@ -38,20 +38,15 @@ function resolverColeccion(
     if (!coincide) {
       continue;
     }
+const coleccion = COLECCIONES[prefijo];
 
-    const coleccion = COLECCIONES[prefijo];
+if (!coleccion) continue;
 
-    if (!coleccion) {
-      continue;
-    }
-
-    return {
-      prefijo,
-      coleccion,
-      resto: segmentosSeguro.slice(partesPrefijo.length),
-    };
-  }
-
+return {
+    prefijo,
+    coleccion,
+    resto: segmentosSeguro.slice(partesPrefijo.length),
+};
   return null;
 }
 function parseFilters(searchParams: URLSearchParams) {
