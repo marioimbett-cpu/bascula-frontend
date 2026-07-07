@@ -5,6 +5,13 @@ export async function POST() {
   // Modo demo: acepta cualquier correo/contraseña y siempre autentica como el primer usuario de ejemplo.
   const user = usuarios[0];
 
+  if (!user) {
+    return NextResponse.json(
+      { message: "No hay usuarios de demostración configurados." },
+      { status: 500 }
+    );
+  }
+
   const response = NextResponse.json({
     accessToken: "demo-access-token",
     refreshToken: "demo-refresh-token",
@@ -17,7 +24,6 @@ export async function POST() {
     },
   });
 
-  // Cookie que habilita el guard de rutas en middleware.ts
   response.cookies.set("bascula_session", "demo-session", {
     httpOnly: true,
     sameSite: "lax",

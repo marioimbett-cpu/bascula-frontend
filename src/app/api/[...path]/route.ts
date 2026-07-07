@@ -1,4 +1,4 @@
-mport { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import * as db from "@/mocks/data";
 
 // Mapea el prefijo de ruta (tal como lo llaman los servicios en src/services/modules.ts) a su colección en memoria.
@@ -191,4 +191,4 @@ export async function DELETE(request: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-}
+

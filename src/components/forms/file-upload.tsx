@@ -25,7 +25,7 @@ export function FileUpload({ onFileSelected, accept = "image/*", label = "Sube l
     [onFileSelected]
   );
 
-  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+  const onDrop = (e: DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
