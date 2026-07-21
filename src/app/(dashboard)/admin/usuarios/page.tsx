@@ -10,17 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { useUsuariosQuery, useCambiarRol, useDesactivarUsuario } from "@/hooks/use-usuarios";
+import { ROL_LABEL } from "@/components/forms/usuario-form";
 import type { RolUsuario, Usuario } from "@/interfaces/domain";
 
 const ROLES: RolUsuario[] = ["Bascula", "Ventas", "Compras", "Facturacion y Contabilidad", "Administrador"];
-
-const ROL_LABEL: Record<RolUsuario, string> = {
-  Bascula: "Báscula / Captura",
-  Ventas: "Ventas",
-  Compras: "Compras",
-  "Facturacion y Contabilidad": "Facturación y Contabilidad",
-  Administrador: "Administrador / Supervisor",
-};
 
 export default function UsuariosPage() {
   const [search, setSearch] = useState("");

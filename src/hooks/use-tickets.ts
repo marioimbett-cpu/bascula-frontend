@@ -15,6 +15,23 @@ export function useTicketsQuery(params: ListParams) {
   });
 }
 
+/** Registra un ticket nuevo (captura por OCR, PDF o digitación manual) — sección 3.3 del esquema. */
+export function useCrearTicket() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: Partial<Ticket>) =>
+      ticketsService.create({ estado: "Capturado", estadoValidacion: "Pendiente", ...payload }),
+    onSuccess: () => {
+      toast.success("Ticket registrado correctamente.");
+      queryClient.invalidateQueries({ queryKey: [TICKETS_KEY] });
+    },
+    onError: () => {
+      toast.error("No fue posible registrar el ticket.");
+    },
+  });
+}
+
 /** Valida un ticket (transición Capturado -> Validado), invalidando el listado tras confirmar. */
 export function useValidarTicket() {
   const queryClient = useQueryClient();

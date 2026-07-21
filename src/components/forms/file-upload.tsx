@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState, type DragEvent } from "react";
-import { UploadCloud, FileImage, X } from "lucide-react";
+import { UploadCloud, FileImage, FileText, X } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface FileUploadProps {
@@ -15,11 +15,15 @@ export function FileUpload({ onFileSelected, accept = "image/*", label = "Sube l
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [isPdf, setIsPdf] = useState(false);
 
   const handleFile = useCallback(
     (file: File) => {
+      const pdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      setIsPdf(pdf);
       setFileName(file.name);
-      setPreview(URL.createObjectURL(file));
+      // Los PDF no se pueden previsualizar como <img>; se muestra una tarjeta con el nombre del archivo.
+      setPreview(pdf ? "pdf" : URL.createObjectURL(file));
       onFileSelected(file);
     },
     [onFileSelected]
@@ -35,22 +39,40 @@ export function FileUpload({ onFileSelected, accept = "image/*", label = "Sube l
   const clear = () => {
     setPreview(null);
     setFileName(null);
+    setIsPdf(false);
   };
 
   return (
     <div>
       {preview ? (
-        <div className="relative overflow-hidden rounded-lg border border-border">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={preview} alt={`Vista previa de ${fileName}`} className="max-h-96 w-full object-contain bg-muted" />
-          <button
-            onClick={clear}
-            aria-label="Quitar imagen"
-            className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
+        isPdf ? (
+          <div className="relative flex items-center gap-3 overflow-hidden rounded-lg border border-border bg-muted p-4">
+            <FileText className="h-8 w-8 shrink-0 text-primary-600" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{fileName}</p>
+              <p className="text-xs text-muted-foreground">Documento PDF adjunto</p>
+            </div>
+            <button
+              onClick={clear}
+              aria-label="Quitar archivo"
+              className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
+          <div className="relative overflow-hidden rounded-lg border border-border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={preview} alt={`Vista previa de ${fileName}`} className="max-h-96 w-full object-contain bg-muted" />
+            <button
+              onClick={clear}
+              aria-label="Quitar imagen"
+              className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        )
       ) : (
         <label
           onDragOver={(e) => {

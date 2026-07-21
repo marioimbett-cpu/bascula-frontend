@@ -63,8 +63,10 @@ export interface Ticket {
   valorTotal: number;
   metodoCaptura: MetodoCaptura;
   imagenTicketUrl?: string;
+  tipoAdjunto?: "Imagen" | "PDF";
   estadoValidacion: "Pendiente" | "Validado" | "Corregido" | "Rechazado";
   validadoPor?: string;
+  registradoPorId?: string;
   ticketOrigenId?: string;
   motivoAnulacion?: string;
   motivoCorreccion?: string;

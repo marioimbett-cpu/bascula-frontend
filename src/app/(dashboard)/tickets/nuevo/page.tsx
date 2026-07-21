@@ -1,29 +1,49 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Scan, Keyboard, Save } from "lucide-react";
-import { toast } from "sonner";
+import { AlertTriangle, FileText, Plus, Scan, Keyboard, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/forms/form-field";
 import { FileUpload } from "@/components/forms/file-upload";
+import { Modal } from "@/components/modals/modal";
+import { TerceroForm } from "@/components/forms/tercero-form";
+import { UsuarioForm } from "@/components/forms/usuario-form";
+import { useTercerosQuery } from "@/hooks/use-terceros";
+import { useUsuariosQuery } from "@/hooks/use-usuarios";
+import { useProductosQuery } from "@/hooks/use-inventario";
+import { useCrearTicket } from "@/hooks/use-tickets";
 import { ticketValidationSchema, type TicketValidationFormValues } from "@/utils/validation-schemas";
 import { cn } from "@/utils/cn";
 
 // Campos que el OCR reportó con baja confianza (simulado); en producción vendría de la respuesta del motor OCR.
 const CAMPOS_BAJA_CONFIANZA = new Set(["pesoSalidaKg", "valorUnKg"]);
 
+type MetodoCapturaTicket = "OCR" | "PDF" | "Manual";
+
 export default function NuevoTicketPage() {
-  const [metodo, setMetodo] = useState<"OCR" | "Manual">("OCR");
-  const [imagenCargada, setImagenCargada] = useState(false);
+  const router = useRouter();
+  const [metodo, setMetodo] = useState<MetodoCapturaTicket>("OCR");
+  const [archivoCargado, setArchivoCargado] = useState(false);
+  const [archivoUrl, setArchivoUrl] = useState<string | undefined>(undefined);
+  const [modalTerceroOpen, setModalTerceroOpen] = useState(false);
+  const [modalUsuarioOpen, setModalUsuarioOpen] = useState(false);
+
+  const { data: terceros, isLoading: cargandoTerceros } = useTercerosQuery({ page: 1, pageSize: 100 });
+  const { data: usuarios, isLoading: cargandoUsuarios } = useUsuariosQuery({ page: 1, pageSize: 100 });
+  const { data: productos, isLoading: cargandoProductos } = useProductosQuery({ page: 1, pageSize: 100 });
+  const crearTicket = useCrearTicket();
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<TicketValidationFormValues>({
     resolver: zodResolver(ticketValidationSchema),
@@ -35,10 +55,35 @@ export default function NuevoTicketPage() {
   const pesoDescontado = watch("pesoDescontadoKg") || 0;
   const pesoNeto = Math.max(0, pesoEntrada - pesoSalida - pesoDescontado);
 
-  const onSubmit = async (values: TicketValidationFormValues) => {
-    // En producción: POST a ticketsService.create({...values, estado: "Validado"})
-    console.log("Ticket validado:", values);
-    toast.success("Ticket validado y listo para generar orden de compra/venta.");
+  const cambiarMetodo = (siguiente: MetodoCapturaTicket) => {
+    setMetodo(siguiente);
+    setArchivoCargado(false);
+    setArchivoUrl(undefined);
+  };
+
+  const onSubmit = (values: TicketValidationFormValues) => {
+    const producto = productos?.data.find((p) => p.id === values.productoId);
+    crearTicket.mutate(
+      {
+        ...values,
+        pesoBrutoKg: pesoEntrada,
+        pesoNetoKg: pesoNeto,
+        valorTotal: Number((pesoNeto * values.valorUnKg).toFixed(2)),
+        nombreMaterialBascula: producto?.nombre ?? "",
+        metodoCaptura: metodo === "OCR" ? "OCR" : "Manual",
+        tipoAdjunto: metodo === "OCR" ? "Imagen" : metodo === "PDF" ? "PDF" : undefined,
+        imagenTicketUrl: archivoUrl,
+        estado: "Capturado",
+        estadoValidacion: "Pendiente",
+      },
+      {
+        onSuccess: () => {
+          reset();
+          cambiarMetodo("OCR");
+          router.push("/tickets");
+        },
+      }
+    );
   };
 
   return (
@@ -50,32 +95,48 @@ export default function NuevoTicketPage() {
         </p>
       </div>
 
-      <div className="flex gap-2" role="group" aria-label="Método de captura">
-        <Button variant={metodo === "OCR" ? "default" : "outline"} size="sm" onClick={() => setMetodo("OCR")}>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Método de captura">
+        <Button variant={metodo === "OCR" ? "default" : "outline"} size="sm" onClick={() => cambiarMetodo("OCR")}>
           <Scan className="h-4 w-4" aria-hidden="true" /> Escaneo (OCR)
         </Button>
-        <Button variant={metodo === "Manual" ? "default" : "outline"} size="sm" onClick={() => setMetodo("Manual")}>
+        <Button variant={metodo === "PDF" ? "default" : "outline"} size="sm" onClick={() => cambiarMetodo("PDF")}>
+          <FileText className="h-4 w-4" aria-hidden="true" /> Documento PDF
+        </Button>
+        <Button variant={metodo === "Manual" ? "default" : "outline"} size="sm" onClick={() => cambiarMetodo("Manual")}>
           <Keyboard className="h-4 w-4" aria-hidden="true" /> Digitación manual
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {metodo === "OCR" && (
+        {metodo !== "Manual" && (
           <Card>
             <CardHeader>
-              <CardTitle>Imagen del ticket</CardTitle>
-              <CardDescription>Sube la foto o escaneo del ticket físico de báscula</CardDescription>
+              <CardTitle>{metodo === "OCR" ? "Imagen del ticket" : "Documento del ticket"}</CardTitle>
+              <CardDescription>
+                {metodo === "OCR"
+                  ? "Sube la foto o escaneo del ticket físico de báscula"
+                  : "Sube el PDF del ticket como respaldo del movimiento"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <FileUpload
-                label="Arrastra la imagen o haz clic para subirla"
-                helpText="JPG o PNG — formato fijo del ticket de báscula"
-                onFileSelected={() => setImagenCargada(true)}
+                label={metodo === "OCR" ? "Arrastra la imagen o haz clic para subirla" : "Arrastra el PDF o haz clic para subirlo"}
+                helpText={metodo === "OCR" ? "JPG o PNG — formato fijo del ticket de báscula" : "PDF — se adjunta como respaldo del ticket"}
+                accept={metodo === "OCR" ? "image/*" : "application/pdf"}
+                onFileSelected={(file) => {
+                  setArchivoCargado(true);
+                  setArchivoUrl(URL.createObjectURL(file));
+                }}
               />
-              {imagenCargada && (
+              {archivoCargado && metodo === "OCR" && (
                 <p className="mt-3 flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
                   Los campos resaltados en el formulario fueron detectados con baja confianza. Verifícalos.
+                </p>
+              )}
+              {archivoCargado && metodo === "PDF" && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  El PDF queda adjunto como respaldo del ticket. Completa los datos manualmente en el formulario.
                 </p>
               )}
             </CardContent>
@@ -123,24 +184,56 @@ export default function NuevoTicketPage() {
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   {...register("productoId")}
                 >
-                  <option value="">Selecciona un producto</option>
-                  <option value="prod-1">Maíz amarillo</option>
-                  <option value="prod-2">Arena de río</option>
-                  <option value="prod-3">Productos varios</option>
+                  <option value="">{cargandoProductos ? "Cargando productos..." : "Selecciona un producto"}</option>
+                  {productos?.data.map((producto) => (
+                    <option key={producto.id} value={producto.id}>
+                      {producto.nombre}
+                    </option>
+                  ))}
                 </select>
               </FormField>
 
-              <FormField id="terceroId" label="Cliente / Proveedor" required error={errors.terceroId?.message}>
-                <select
-                  id="terceroId"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  {...register("terceroId")}
-                >
-                  <option value="">Selecciona un tercero</option>
-                  <option value="tercero-1">Transportes del Norte S.A.S.</option>
-                  <option value="tercero-2">Agroinsumos del Valle</option>
-                </select>
-              </FormField>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <FormField id="terceroId" label="Cliente / Proveedor" required error={errors.terceroId?.message}>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      {...register("terceroId")}
+                    >
+                      <option value="">{cargandoTerceros ? "Cargando..." : "Selecciona un tercero"}</option>
+                      {terceros?.data.map((tercero) => (
+                        <option key={tercero.id} value={tercero.id}>
+                          {tercero.nombre} ({tercero.tipo})
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setModalTerceroOpen(true)}>
+                  <Plus className="h-4 w-4" aria-hidden="true" /> Nuevo
+                </Button>
+              </div>
+
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <FormField id="registradoPorId" label="Registrado por" required error={errors.registradoPorId?.message} helpText="Usuario que captura el ticket">
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      {...register("registradoPorId")}
+                    >
+                      <option value="">{cargandoUsuarios ? "Cargando..." : "Selecciona un usuario"}</option>
+                      {usuarios?.data.map((usuario) => (
+                        <option key={usuario.id} value={usuario.id}>
+                          {usuario.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setModalUsuarioOpen(true)}>
+                  <Plus className="h-4 w-4" aria-hidden="true" /> Nuevo
+                </Button>
+              </div>
 
               <FormField
                 id="valorUnKg"
@@ -153,13 +246,45 @@ export default function NuevoTicketPage() {
                 <Input type="number" step="0.01" {...register("valorUnKg")} />
               </FormField>
 
-              <Button type="submit" className="w-full" isLoading={isSubmitting}>
-                <Save className="h-4 w-4" aria-hidden="true" /> Validar ticket
+              <Button type="submit" className="w-full" isLoading={isSubmitting || crearTicket.isPending}>
+                <Save className="h-4 w-4" aria-hidden="true" /> Registrar ticket
               </Button>
             </form>
           </CardContent>
         </Card>
       </div>
+
+      <Modal
+        open={modalTerceroOpen}
+        onClose={() => setModalTerceroOpen(false)}
+        title="Nuevo cliente o proveedor"
+        description="Se creará dentro de la empresa activa y quedará disponible de inmediato en este ticket"
+      >
+        <TerceroForm
+          submitLabel="Crear y seleccionar"
+          onCancel={() => setModalTerceroOpen(false)}
+          onCreated={(tercero) => {
+            setValue("terceroId", tercero.id, { shouldValidate: true });
+            setModalTerceroOpen(false);
+          }}
+        />
+      </Modal>
+
+      <Modal
+        open={modalUsuarioOpen}
+        onClose={() => setModalUsuarioOpen(false)}
+        title="Nuevo usuario"
+        description="Define su rol — quedará disponible de inmediato como responsable de este ticket"
+      >
+        <UsuarioForm
+          submitLabel="Crear y seleccionar"
+          onCancel={() => setModalUsuarioOpen(false)}
+          onCreated={(usuario) => {
+            setValue("registradoPorId", usuario.id, { shouldValidate: true });
+            setModalUsuarioOpen(false);
+          }}
+        />
+      </Modal>
     </div>
   );
 }

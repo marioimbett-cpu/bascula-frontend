@@ -32,6 +32,7 @@ export const ticketValidationSchema = z
     pesoDescontadoKg: z.coerce.number().min(0, "No puede ser negativo"),
     productoId: z.string().min(1, "Selecciona un producto"),
     terceroId: z.string().min(1, "Selecciona un cliente o proveedor"),
+    registradoPorId: z.string().min(1, "Selecciona quién registra el ticket"),
     valorUnKg: z.coerce.number().positive("El valor debe ser mayor a 0"),
   })
   .refine((data) => Math.abs(data.pesoEntradaKg - data.pesoSalidaKg) > 0, {
