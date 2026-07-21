@@ -13,7 +13,7 @@ export type EstadoTicket =
   | "Corregido"
   | "Anulado";
 
-export type TipoMovimiento = "Compra" | "Venta";
+export type TipoMovimiento = "Compra" | "Venta" | "Servicio de Báscula";
 export type OrigenCaptura = "Bascula" | "Documento";
 export type MetodoCaptura = "OCR" | "Manual";
 

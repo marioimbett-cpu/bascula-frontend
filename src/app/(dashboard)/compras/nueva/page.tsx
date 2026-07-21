@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/forms/form-field";
 import { useTicketsPendientesCompra, useCrearOrdenCompra } from "@/hooks/use-compras";
+import { useTercerosQuery } from "@/hooks/use-terceros";
+import { useProductosQuery } from "@/hooks/use-inventario";
 import { ordenCompraSchema, type OrdenCompraFormValues } from "@/utils/validation-schemas";
 import { cn } from "@/utils/cn";
 
@@ -17,6 +19,8 @@ export default function NuevaCompraPage() {
   const router = useRouter();
   const [origen, setOrigen] = useState<"Ticket" | "Documento">("Ticket");
   const { data: ticketsPendientes, isLoading: cargandoTickets } = useTicketsPendientesCompra();
+  const { data: proveedores, isLoading: cargandoProveedores } = useTercerosQuery({ page: 1, pageSize: 100, filters: { tipo: "Proveedor" } });
+  const { data: productos, isLoading: cargandoProductos } = useProductosQuery({ page: 1, pageSize: 100 });
   const crearOrden = useCrearOrdenCompra();
 
   const {
@@ -122,27 +126,35 @@ export default function NuevaCompraPage() {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 {...register("proveedorId")}
               >
-                <option value="">Selecciona un proveedor</option>
-                <option value="prov-1">Transportes del Norte S.A.S. (Local)</option>
-                <option value="prov-2">Agroinsumos del Valle (Nacional)</option>
+                <option value="">{cargandoProveedores ? "Cargando..." : "Selecciona un proveedor"}</option>
+                {proveedores?.data.map((proveedor) => (
+                  <option key={proveedor.id} value={proveedor.id}>
+                    {proveedor.nombre} {proveedor.subtipoProveedor ? `(${proveedor.subtipoProveedor})` : ""}
+                  </option>
+                ))}
               </select>
             </FormField>
 
-            <FormField id="productoId" label="Producto" required error={errors.productoId?.message}>
+            <FormField
+              id="productoId"
+              label="Producto"
+              required
+              error={errors.productoId?.message}
+              helpText={origen === "Documento" ? "Productos varios: los que no pasan por la báscula" : undefined}
+            >
               <select
                 id="productoId"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 {...register("productoId")}
               >
-                <option value="">Selecciona un producto</option>
-                {origen === "Ticket" ? (
-                  <>
-                    <option value="prod-1">Maíz amarillo</option>
-                    <option value="prod-2">Arena de río</option>
-                  </>
-                ) : (
-                  <option value="prod-3">Productos varios</option>
-                )}
+                <option value="">{cargandoProductos ? "Cargando..." : "Selecciona un producto"}</option>
+                {productos?.data
+                  .filter((producto) => (origen === "Ticket" ? producto.categoria === "Pesado en Bascula" : producto.categoria === "Productos Varios"))
+                  .map((producto) => (
+                    <option key={producto.id} value={producto.id}>
+                      {producto.nombre}
+                    </option>
+                  ))}
               </select>
             </FormField>
 

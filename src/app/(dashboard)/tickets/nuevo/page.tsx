@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, FileText, Plus, Scan, Keyboard, Save } from "lucide-react";
+import { AlertTriangle, FileText, Plus, Scan, Keyboard, Save, ShoppingCart, Tag, Gauge } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,8 +47,10 @@ export default function NuevoTicketPage() {
     formState: { errors, isSubmitting },
   } = useForm<TicketValidationFormValues>({
     resolver: zodResolver(ticketValidationSchema),
-    defaultValues: { pesoEntradaKg: 0, pesoSalidaKg: 0, pesoDescontadoKg: 0, valorUnKg: 0 },
+    defaultValues: { tipoMovimiento: "Compra", pesoEntradaKg: 0, pesoSalidaKg: 0, pesoDescontadoKg: 0, valorUnKg: 0 },
   });
+
+  const tipoMovimiento = watch("tipoMovimiento") ?? "Compra";
 
   const pesoEntrada = watch("pesoEntradaKg") || 0;
   const pesoSalida = watch("pesoSalidaKg") || 0;
@@ -94,6 +96,39 @@ export default function NuevoTicketPage() {
           Todo ticket capturado por OCR requiere validación humana antes de afectar inventario o finanzas.
         </p>
       </div>
+
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Tipo de movimiento">
+        <Button
+          type="button"
+          variant={tipoMovimiento === "Compra" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setValue("tipoMovimiento", "Compra")}
+        >
+          <ShoppingCart className="h-4 w-4" aria-hidden="true" /> Compra
+        </Button>
+        <Button
+          type="button"
+          variant={tipoMovimiento === "Venta" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setValue("tipoMovimiento", "Venta")}
+        >
+          <Tag className="h-4 w-4" aria-hidden="true" /> Venta
+        </Button>
+        <Button
+          type="button"
+          variant={tipoMovimiento === "Servicio de Báscula" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setValue("tipoMovimiento", "Servicio de Báscula")}
+        >
+          <Gauge className="h-4 w-4" aria-hidden="true" /> Servicio de báscula
+        </Button>
+      </div>
+      {tipoMovimiento === "Servicio de Báscula" && (
+        <p className="text-xs text-muted-foreground">
+          Se cobra el pesaje según producto y valor por kg, igual que una compra o venta, pero no genera
+          orden de compra/venta después de validarlo — queda como un servicio de báscula independiente.
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Método de captura">
         <Button variant={metodo === "OCR" ? "default" : "outline"} size="sm" onClick={() => cambiarMetodo("OCR")}>

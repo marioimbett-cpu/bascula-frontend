@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/badge";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePagination } from "@/hooks/use-pagination";
 import { useTicketsQuery } from "@/hooks/use-tickets";
+import { useTercerosQuery } from "@/hooks/use-terceros";
 import type { Ticket } from "@/interfaces/domain";
 import { ticketsService } from "@/services/modules";
 
@@ -27,6 +28,15 @@ export default function TicketsPage() {
     search: debouncedSearch,
     filters: estadoFiltro !== "Todos" ? { estado: estadoFiltro } : undefined,
   });
+
+  // Se trae el catálogo completo de terceros (misma empresa activa) para resolver terceroId -> nombre en la tabla,
+  // en vez de mostrar el id crudo o pedirle al usuario que abra cada ticket para saber quién es.
+  const { data: terceros } = useTercerosQuery({ page: 1, pageSize: 200 });
+  const terceroPorId = useMemo(() => {
+    const mapa = new Map<string, string>();
+    terceros?.data.forEach((t) => mapa.set(t.id, `${t.nombre} (${t.tipo})`));
+    return mapa;
+  }, [terceros]);
 
   const columns = useMemo<ColumnDef<Ticket>[]>(
     () => [
@@ -47,6 +57,14 @@ export default function TicketsPage() {
         ),
       },
       { accessorKey: "nombreMaterialBascula", header: "Producto" },
+      {
+        accessorKey: "terceroId",
+        header: "Cliente / Proveedor",
+        cell: ({ getValue }) => {
+          const id = getValue<string | undefined>();
+          return <span className="text-muted-foreground">{id ? terceroPorId.get(id) ?? id : "—"}</span>;
+        },
+      },
       {
         accessorKey: "pesoNetoKg",
         header: "Peso neto (kg)",
@@ -74,7 +92,7 @@ export default function TicketsPage() {
         ),
       },
     ],
-    []
+    [terceroPorId]
   );
 
   return (

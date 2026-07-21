@@ -43,7 +43,8 @@ export function useCrearOrdenVenta() {
     mutationFn: (payload: OrdenVentaFormValues) => {
       const body: Partial<OrdenCompraVenta> = {
         tipo: "Venta",
-        ticketId: payload.ticketId,
+        ticketId: payload.origen === "Ticket" ? payload.ticketId : undefined,
+        numeroDocumento: payload.origen === "Documento" ? payload.numeroDocumento : undefined,
         terceroId: payload.clienteId,
         productoId: payload.productoId,
         cantidad: payload.cantidad,

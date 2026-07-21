@@ -27,6 +27,7 @@ export type RegisterFormValues = z.infer<typeof registerSchema>;
 // Validación del ticket: peso neto = peso bruto - tara (sección 3.3 del esquema)
 export const ticketValidationSchema = z
   .object({
+    tipoMovimiento: z.enum(["Compra", "Venta", "Servicio de Báscula"]),
     pesoEntradaKg: z.coerce.number().positive("Debe ser mayor a 0"),
     pesoSalidaKg: z.coerce.number().positive("Debe ser mayor a 0"),
     pesoDescontadoKg: z.coerce.number().min(0, "No puede ser negativo"),
@@ -64,17 +65,29 @@ export const ordenCompraSchema = z
   });
 export type OrdenCompraFormValues = z.infer<typeof ordenCompraSchema>;
 
-// Orden de venta: origen siempre desde ticket de báscula (producto pesado). Factura opcional según el caso;
+// Orden de venta: origen dual, igual que compras — desde ticket de báscula (producto pesado) o desde
+// documento/venta directa de Productos Varios sin pasar por báscula. Factura opcional según el caso;
 // si no aplica, la cuenta por cobrar se soporta directamente en la orden de venta (sección 3.5).
-export const ordenVentaSchema = z.object({
-  ticketId: z.string().min(1, "Selecciona el ticket de báscula de origen"),
-  clienteId: z.string().min(1, "Selecciona un cliente"),
-  productoId: z.string().min(1, "Selecciona un producto"),
-  cantidad: z.coerce.number().positive("La cantidad debe ser mayor a 0"),
-  precioUnitario: z.coerce.number().positive("El precio debe ser mayor a 0"),
-  requiereFactura: z.boolean(),
-  observaciones: z.string().max(500, "Máximo 500 caracteres").optional(),
-});
+export const ordenVentaSchema = z
+  .object({
+    origen: z.enum(["Ticket", "Documento"]),
+    ticketId: z.string().optional(),
+    numeroDocumento: z.string().optional(),
+    clienteId: z.string().min(1, "Selecciona un cliente"),
+    productoId: z.string().min(1, "Selecciona un producto"),
+    cantidad: z.coerce.number().positive("La cantidad debe ser mayor a 0"),
+    precioUnitario: z.coerce.number().positive("El precio debe ser mayor a 0"),
+    requiereFactura: z.boolean(),
+    observaciones: z.string().max(500, "Máximo 500 caracteres").optional(),
+  })
+  .refine((data) => data.origen !== "Ticket" || !!data.ticketId, {
+    message: "Selecciona el ticket de báscula de origen",
+    path: ["ticketId"],
+  })
+  .refine((data) => data.origen !== "Documento" || !!data.numeroDocumento, {
+    message: "Ingresa el número de documento de venta",
+    path: ["numeroDocumento"],
+  });
 export type OrdenVentaFormValues = z.infer<typeof ordenVentaSchema>;
 
 // Pago (abono parcial o total) — sección 3.7 y 5.7. La referencia/cheque son condicionales al método.
