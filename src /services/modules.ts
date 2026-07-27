@@ -1,4 +1,4 @@
-import { api, tokenStorage } from "./api";
+ import { api, tokenStorage } from "./api";
 import { createResourceService } from "./resource";
 import type {
   Ticket,
@@ -13,6 +13,7 @@ import type {
   Causacion,
   ConciliacionBancaria,
   Usuario,
+  Factura,
 } from "@/interfaces/domain";
 import type { LoginPayload, AuthResponse } from "@/interfaces/auth";
 
@@ -49,3 +50,4 @@ export const movimientosInventarioService = createResourceService<MovimientoInve
 export const causacionService = createResourceService<Causacion>("/causacion");
 export const conciliacionService = createResourceService<ConciliacionBancaria>("/conciliacion");
 export const usuariosService = createResourceService<Usuario>("/usuarios");
+export const facturasService = createResourceService<Factura>("/facturas");
