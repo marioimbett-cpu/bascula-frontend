@@ -1,18 +1,21 @@
-"use client";
+ "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { Truck, Boxes, Wallet, ReceiptText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useOrdenVenta, useGenerarFactura } from "@/hooks/use-ventas";
+import { Modal } from "@/components/modals/modal";
+import { FacturaForm } from "@/components/forms/factura-form";
+import { useOrdenVenta } from "@/hooks/use-ventas";
 
 export default function OrdenVentaDetallePage() {
   const params = useParams();
   const id = params.id as string;
   const { data: orden, isLoading } = useOrdenVenta(id);
-  const generarFactura = useGenerarFactura();
+  const [modalFacturaOpen, setModalFacturaOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -27,6 +30,7 @@ export default function OrdenVentaDetallePage() {
     id,
     serie: "OV",
     consecutivo: 87,
+    terceroId: "cli-1",
     cantidad: 9800,
     precioUnitario: 850,
     valorTotal: 8330000,
@@ -78,7 +82,7 @@ export default function OrdenVentaDetallePage() {
       <Card>
         <CardHeader>
           <CardTitle>Facturación</CardTitle>
-          <CardDescription>Opcional según el caso — siempre se genera cuenta por cobrar</CardDescription>
+          <CardDescription>PDF adjunto + datos capturados manualmente (número, fecha, ítems, IVA, retenciones)</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
           {datos.requiereFactura ? (
@@ -89,7 +93,7 @@ export default function OrdenVentaDetallePage() {
             ) : (
               <>
                 <Badge variant="warning">Factura pendiente</Badge>
-                <Button size="sm" onClick={() => generarFactura.mutate(datos.id)} isLoading={generarFactura.isPending}>
+                <Button size="sm" onClick={() => setModalFacturaOpen(true)}>
                   Generar factura
                 </Button>
               </>
@@ -119,6 +123,21 @@ export default function OrdenVentaDetallePage() {
           </div>
         </CardContent>
       </Card>
+
+      <Modal
+        open={modalFacturaOpen}
+        onClose={() => setModalFacturaOpen(false)}
+        title="Factura de venta"
+        description="Adjunta el PDF de la factura y captura sus datos"
+      >
+        <FacturaForm
+          tipo="Venta"
+          ordenId={datos.id}
+          terceroId={datos.terceroId}
+          onCancel={() => setModalFacturaOpen(false)}
+          onCreated={() => setModalFacturaOpen(false)}
+        />
+      </Modal>
     </div>
   );
 }
