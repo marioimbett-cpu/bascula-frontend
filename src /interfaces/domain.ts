@@ -1,4 +1,4 @@
-/**
+ /**
  * Tipos de dominio derivados del esquema funcional del Sistema de Báscula
  * y Gestión Administrativo-Financiera. Reflejan el modelo de datos (sección 5
  * del documento de esquema) y los estados/reglas descritos en las secciones 3-4.
@@ -89,14 +89,44 @@ export interface OrdenCompraVenta {
   facturaId?: string;
 }
 
+// Ítem de línea de una factura (compra o venta) — descripción libre + valor unitario/total,
+// tal como aparece en el PDF adjunto. No está atado al catálogo de Productos: la factura puede
+// traer varias líneas aunque la orden de origen solo maneje un producto/cantidad.
+export interface FacturaItem {
+  id: string;
+  descripcion: string;
+  cantidad: number;
+  valorUnitario: number;
+  valorTotal: number;
+}
+
+export type TipoRetencion = "ReteFuente" | "ReteIVA" | "ReteICA";
+
+/**
+ * Factura de compra o de venta, capturada manualmente a partir del PDF adjunto por el usuario
+ * (número de factura, fecha, cliente/proveedor, ítems, IVA y retenciones si aplica).
+ * IMPORTANTE: la factura nunca genera movimiento de inventario — eso lo hace el ticket de báscula
+ * (entrada) o la orden de venta (salida). Ver `OrdenCompraVenta.facturaId`, que enlaza la orden
+ * (de compra o de venta) con la factura capturada aquí.
+ */
 export interface Factura {
   id: string;
   empresaId: string;
-  serie: string;
-  consecutivo: number;
-  ordenVentaId: string;
-  clienteId: string;
+  tipo: "Compra" | "Venta";
+  numeroFactura: string;
+  fecha: string;
+  ordenId: string; // id de la orden de compra o de venta asociada
+  terceroId: string; // proveedor (Compra) o cliente (Venta)
+  items: FacturaItem[];
+  subtotal: number;
+  ivaPorcentaje: number;
+  ivaValor: number;
+  aplicaRetencion: boolean;
+  tipoRetencion?: TipoRetencion;
+  porcentajeRetencion?: number;
+  valorRetencion?: number;
   valorTotal: number;
+  pdfUrl?: string;
   estado: "Pendiente" | "Pagada" | "Anulada";
 }
 
