@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -191,8 +191,10 @@ export default function NuevaCompraPage() {
             </FormField>
 
             <p className="text-xs text-muted-foreground">
-              Al guardar se generará automáticamente el movimiento de inventario (entrada) y la cuenta por pagar
-              correspondiente. La factura de compra es opcional y se causa contablemente por separado.
+              Al guardar se generará la cuenta por pagar correspondiente. Esta orden <strong>no</strong> genera
+              movimiento de inventario: el producto ya ingresó al inventario cuando se validó el ticket de báscula
+              (o su ingreso ya fue registrado por otro medio). La factura del proveedor se adjunta en PDF y se
+              captura por separado, desde el detalle de la orden.
             </p>
 
             <div className="flex gap-2">
