@@ -1,4 +1,4 @@
-import { z } from "zod";
+ import { z } from "zod";
 
 export const loginSchema = z.object({
   email: z.string().min(1, "El correo es obligatorio").email("Ingresa un correo válido"),
@@ -104,6 +104,39 @@ export const ordenVentaSchema = z
     path: ["numeroDocumento"],
   });
 export type OrdenVentaFormValues = z.infer<typeof ordenVentaSchema>;
+
+// Ítem de línea de una factura (compra o venta) — descripción libre + cantidad/valor unitario,
+// tal como viene en el PDF adjunto. El valor total del ítem se calcula (cantidad * valorUnitario).
+export const facturaItemSchema = z.object({
+  descripcion: z.string().min(2, "Describe el ítem"),
+  cantidad: z.coerce.number().positive("Debe ser mayor a 0"),
+  valorUnitario: z.coerce.number().positive("Debe ser mayor a 0"),
+});
+export type FacturaItemFormValues = z.infer<typeof facturaItemSchema>;
+
+// Captura manual de la factura (de compra o de venta) a partir del PDF que el usuario adjunta como
+// soporte — el PDF no se procesa por OCR, los datos se digitan: número, fecha, tercero, ítems
+// (descripción/valor unitario/valor total), IVA y retención si aplica. Común a Compras y Ventas.
+export const facturaSchema = z
+  .object({
+    numeroFactura: z.string().min(1, "El número de factura es obligatorio"),
+    fecha: z.string().min(1, "La fecha de la factura es obligatoria"),
+    terceroId: z.string().min(1, "Selecciona el cliente o proveedor"),
+    items: z.array(facturaItemSchema).min(1, "Agrega al menos un ítem"),
+    ivaPorcentaje: z.coerce.number().min(0, "No puede ser negativo").max(100, "Debe ser un porcentaje válido"),
+    aplicaRetencion: z.boolean(),
+    tipoRetencion: z.enum(["ReteFuente", "ReteIVA", "ReteICA"]).optional(),
+    porcentajeRetencion: z.coerce.number().min(0).max(100).optional(),
+  })
+  .refine((data) => !data.aplicaRetencion || !!data.tipoRetencion, {
+    message: "Selecciona el tipo de retención",
+    path: ["tipoRetencion"],
+  })
+  .refine((data) => !data.aplicaRetencion || (data.porcentajeRetencion ?? 0) > 0, {
+    message: "Ingresa el porcentaje de retención",
+    path: ["porcentajeRetencion"],
+  });
+export type FacturaFormValues = z.infer<typeof facturaSchema>;
 
 // Pago (abono parcial o total) — sección 3.7 y 5.7. La referencia/cheque son condicionales al método.
 export const pagoSchema = z
