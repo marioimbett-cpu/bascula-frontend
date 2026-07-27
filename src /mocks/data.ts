@@ -1,4 +1,4 @@
-import type {
+ import type {
   Empresa,
   Tercero,
   Ticket,
@@ -11,6 +11,7 @@ import type {
   Causacion,
   ConciliacionBancaria,
   Usuario,
+  Factura,
 } from "@/interfaces/domain";
 
 // Datos en memoria — se reinician cada vez que se reinicia el servidor de desarrollo.
@@ -59,7 +60,7 @@ export const tickets: Ticket[] = [
 
 export const ordenesCompra: OrdenCompraVenta[] = [
   { id: "oc-1", empresaId: "emp-1", tipo: "Compra", serie: "OC", consecutivo: 132, ticketId: "tk-1", terceroId: "tercero-2", productoId: "prod-1", cantidad: 12450, precioUnitario: 700, valorTotal: 8715000 },
-  { id: "oc-2", empresaId: "emp-1", tipo: "Compra", serie: "OC", consecutivo: 133, numeroDocumento: "FC-00981", terceroId: "tercero-1", productoId: "prod-3", cantidad: 500, precioUnitario: 4200, valorTotal: 2100000 },
+  { id: "oc-2", empresaId: "emp-1", tipo: "Compra", serie: "OC", consecutivo: 133, numeroDocumento: "FC-00981", terceroId: "tercero-1", productoId: "prod-3", cantidad: 500, precioUnitario: 4200, valorTotal: 2100000, facturaId: "fact-1" },
 ];
 
 export const ordenesVenta: OrdenCompraVenta[] = [
@@ -83,9 +84,36 @@ export const cheques: Cheque[] = [
   { id: "cheque-2", empresaId: "emp-1", tipo: "Recibido", numeroCheque: "889102", banco: "Davivienda", cuentaBancaria: "987-654321-00", terceroId: "cli-1", valor: 1500000, fechaEmision: new Date().toISOString(), fechaVencimientoCobro: new Date(Date.now() + 20 * 86400000).toISOString(), estado: "Registrado" },
 ];
 
+// La entrada de inventario se genera al VALIDAR EL TICKET DE BÁSCULA (origenId = id del ticket),
+// no al crear la orden de compra: el producto ya ingresó físicamente por báscula, así que la
+// compra nunca vuelve a afectar el inventario. La salida sí la genera la orden de venta.
 export const movimientosInventario: MovimientoInventario[] = [
-  { id: "mov-1", empresaId: "emp-1", productoId: "prod-1", tipo: "Entrada", cantidad: 12450, origenId: "oc-1", saldoResultante: 12450, fecha: new Date(Date.now() - 3 * 86400000).toISOString() },
+  { id: "mov-1", empresaId: "emp-1", productoId: "prod-1", tipo: "Entrada", cantidad: 12450, origenId: "tk-1", saldoResultante: 12450, fecha: new Date(Date.now() - 3 * 86400000).toISOString() },
   { id: "mov-2", empresaId: "emp-1", productoId: "prod-1", tipo: "Salida", cantidad: 9800, origenId: "ov-1", saldoResultante: 2650, fecha: new Date(Date.now() - 1 * 86400000).toISOString() },
+];
+
+// Facturas de compra/venta capturadas manualmente (PDF adjunto + datos digitados). No generan
+// movimiento de inventario — solo soportan la causación y la cuenta por pagar/cobrar.
+export const facturas: Factura[] = [
+  {
+    id: "fact-1",
+    empresaId: "emp-1",
+    tipo: "Compra",
+    numeroFactura: "FC-00981",
+    fecha: new Date(Date.now() - 4 * 86400000).toISOString().slice(0, 10),
+    ordenId: "oc-2",
+    terceroId: "tercero-1",
+    items: [{ id: "item-1", descripcion: "Empaques de fibra", cantidad: 500, valorUnitario: 4200, valorTotal: 2100000 }],
+    subtotal: 2100000,
+    ivaPorcentaje: 19,
+    ivaValor: 399000,
+    aplicaRetencion: true,
+    tipoRetencion: "ReteFuente",
+    porcentajeRetencion: 2.5,
+    valorRetencion: 52500,
+    valorTotal: 2446500,
+    estado: "Pagada",
+  },
 ];
 
 export const causaciones: Causacion[] = [
