@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ordenesCompraService, ticketsService } from "@/services/modules";
 import type { ListParams } from "@/services/resource";
@@ -36,8 +36,13 @@ export function useTicketsPendientesCompra() {
 }
 
 /**
- * Crea la orden de compra. En backend esto dispara, en una sola transacción:
- * movimiento de inventario (entrada) + cuenta por pagar, y marca el ticket como "Procesado" si aplica.
+ * Crea la orden de compra. En backend esto dispara la cuenta por pagar correspondiente y marca
+ * el ticket como "Procesado" si aplica.
+ *
+ * IMPORTANTE: la compra NO genera movimiento de inventario. El producto ya ingresó físicamente
+ * (y ya quedó registrado en el kardex) cuando se validó el ticket de báscula — o, si la compra
+ * viene "Desde documento de proveedor", su ingreso ya fue registrado por otro medio. Repetir la
+ * entrada aquí duplicaría el inventario. Quien sí afecta inventario (salida) es la orden de venta.
  */
 export function useCrearOrdenCompra() {
   const queryClient = useQueryClient();
@@ -57,7 +62,7 @@ export function useCrearOrdenCompra() {
       return ordenesCompraService.create(body);
     },
     onSuccess: () => {
-      toast.success("Orden de compra generada. Inventario y cuenta por pagar actualizados.");
+      toast.success("Orden de compra generada. Cuenta por pagar actualizada. No afecta inventario: el ingreso ya se registró con el ticket de báscula.");
       queryClient.invalidateQueries({ queryKey: [COMPRAS_KEY] });
     },
     onError: () => {
