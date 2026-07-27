@@ -1,7 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ordenesVentaService, ticketsService } from "@/services/modules";
-import { api } from "@/services/api";
 import type { ListParams } from "@/services/resource";
 import type { OrdenCompraVenta } from "@/interfaces/domain";
 import type { OrdenVentaFormValues } from "@/utils/validation-schemas";
@@ -62,16 +61,6 @@ export function useCrearOrdenVenta() {
   });
 }
 
-/** Genera la factura opcional asociada a una orden de venta ya creada. */
-export function useGenerarFactura() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (ordenVentaId: string) => api.post(`/facturas`, { ordenVentaId }).then((r) => r.data),
-    onSuccess: () => {
-      toast.success("Factura generada correctamente.");
-      queryClient.invalidateQueries({ queryKey: [VENTAS_KEY] });
-    },
-    onError: () => toast.error("No fue posible generar la factura."),
-  });
-}
+// La captura de la factura (PDF + datos manuales: número, fecha, cliente/proveedor, ítems, IVA,
+// retenciones) es común a compras y ventas — ver el hook compartido `useCrearFactura` en
+// `@/hooks/use-facturas`, usado desde el detalle de la orden de compra y de venta.
