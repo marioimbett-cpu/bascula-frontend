@@ -1,16 +1,21 @@
-"use client";
+ "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Truck, ArrowRight, Boxes, Wallet, FileText } from "lucide-react";
+import { Truck, ArrowRight, Boxes, Wallet, FileText, ReceiptText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useOrdenCompra } from "@/hooks/use-compras";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Modal } from "@/components/modals/modal";
+import { FacturaForm } from "@/components/forms/factura-form";
+import { useOrdenCompra } from "@/hooks/use-compras";
 
 export default function OrdenCompraDetallePage() {
   const params = useParams();
   const id = params.id as string;
   const { data: orden, isLoading } = useOrdenCompra(id);
+  const [modalFacturaOpen, setModalFacturaOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -28,9 +33,11 @@ export default function OrdenCompraDetallePage() {
     consecutivo: 132,
     ticketId: "tk-1",
     numeroDocumento: undefined,
+    terceroId: "tercero-2",
     cantidad: 12450,
     precioUnitario: 700,
     valorTotal: 8715000,
+    facturaId: undefined as string | undefined,
   };
 
   return (
@@ -82,21 +89,42 @@ export default function OrdenCompraDetallePage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Factura de compra</CardTitle>
+          <CardDescription>PDF adjunto + datos capturados manualmente (número, fecha, ítems, IVA, retenciones)</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between">
+          {datos.facturaId ? (
+            <Badge variant="success">
+              <ReceiptText className="mr-1 h-3 w-3" aria-hidden="true" /> Factura registrada
+            </Badge>
+          ) : (
+            <>
+              <Badge variant="warning">Factura pendiente</Badge>
+              <Button size="sm" onClick={() => setModalFacturaOpen(true)}>
+                Adjuntar factura del proveedor
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Movimientos generados</CardTitle>
-          <CardDescription>Automáticos al crear la orden — flujo Compra → Inventario → Cuenta</CardDescription>
+          <CardDescription>Automáticos al crear la orden — flujo Compra → Cuenta por pagar</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
-            <span className="flex items-center gap-2">
-              <Boxes className="h-4 w-4 text-primary-600" aria-hidden="true" /> Movimiento de inventario — Entrada
-            </span>
-            <Badge variant="success">Aplicado</Badge>
-          </div>
           <div className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
             <span className="flex items-center gap-2">
               <Wallet className="h-4 w-4 text-primary-600" aria-hidden="true" /> Cuenta por pagar generada
             </span>
             <Badge variant="warning">Pendiente</Badge>
+          </div>
+          <div className="flex items-start gap-2 rounded-md bg-muted p-3 text-xs text-muted-foreground">
+            <Boxes className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Esta orden de compra <strong>no genera movimiento de inventario</strong>: el producto ya ingresó al
+            inventario cuando se validó el ticket de báscula (o su ingreso ya fue registrado por otro medio).
+            Solo la orden de venta genera movimiento de inventario (salida).
           </div>
           <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -104,6 +132,21 @@ export default function OrdenCompraDetallePage() {
           </div>
         </CardContent>
       </Card>
+
+      <Modal
+        open={modalFacturaOpen}
+        onClose={() => setModalFacturaOpen(false)}
+        title="Factura de compra"
+        description="Adjunta el PDF de la factura del proveedor y captura sus datos"
+      >
+        <FacturaForm
+          tipo="Compra"
+          ordenId={datos.id}
+          terceroId={datos.terceroId}
+          onCancel={() => setModalFacturaOpen(false)}
+          onCreated={() => setModalFacturaOpen(false)}
+        />
+      </Modal>
     </div>
   );
 }
